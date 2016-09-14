@@ -36,8 +36,8 @@ private:
     mesh _meshObj;
     glm::vec3 _boundingBox[2];
     std::vector<float> _vertices;
-    std::vector<float> _vertices_adjacency;
     std::vector<float> _normals;
+    std::vector<int> _indeces;
     GLuint _vao, _vbo[3];
     bool _triangle_adjacency;
     glm::mat4 _model;

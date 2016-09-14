@@ -60,17 +60,12 @@ void Mesh::computeVerticesAndNormals() {
 
     glm::vec3 diff = _boundingBox[1] - _boundingBox[0];
 
-    //add normal attribute to the mesh and calculate it.
-    _meshObj.request_face_normals();
-    _meshObj.request_vertex_normals();
-    _meshObj.update_normals();
-
-//    if(_triangle_adjacency)
-//    {
+    if(_triangle_adjacency)
+    {
         findAdjacencies();
-//    }
-//    else
-//    {
+    }
+    else
+    {
         /* face iterator */
         mesh::FaceIter fIter;
         mesh::FaceHandle fHandle;
@@ -88,29 +83,29 @@ void Mesh::computeVerticesAndNormals() {
            average position (center) of face */
             /* notice the termination condition of this iterator */
             for (fvIter = _meshObj.fv_iter(fHandle); fvIter; ++fvIter) {
-                vHandle = *fvIter;
-                mesh::Point vertex = _meshObj.point(fvIter);
-                glm::vec3 v = glm::vec3(vertex[0], vertex[1], vertex[2]);
-                normalizeVector(v);
-                //sort out vertices_rgb
-                for (int i = 0; i < 3; i++) {
-                    _vertices.push_back(v[i]);
-                }
-                _vertices.push_back(1.f);
 
-                OpenMesh::VectorT<float, 3> meshNorm;
-                meshNorm = _meshObj.calc_vertex_normal(vHandle);
-                glm::vec3 n = glm::vec3(meshNorm[0], meshNorm[1], meshNorm[2]);
-                normalizeVector(n);
-                for (int i = 0; i < 3; i++) {
-                    _normals.push_back(n[i]);
-                }
-                _normals.push_back(0.f);
+                _indeces.push_back((*fvIter).idx());
+//                vHandle = *fvIter;
+//                mesh::Point vertex = _meshObj.point(fvIter);
+//                glm::vec3 v = glm::vec3(vertex[0], vertex[1], vertex[2]);
+//                normalizeVector(v);
+//                //sort out vertices_rgb
+//                for (int i = 0; i < 3; i++) {
+//                    _vertices.push_back(v[i]);
+//                }
+//                _vertices.push_back(1.f);
+
+//                OpenMesh::VectorT<float, 3> meshNorm;
+//                meshNorm = _meshObj.calc_vertex_normal(vHandle);
+//                glm::vec3 n = glm::vec3(meshNorm[0], meshNorm[1], meshNorm[2]);
+//                normalizeVector(n);
+//                for (int i = 0; i < 3; i++) {
+//                    _normals.push_back(n[i]);
+//                }
+//                _normals.push_back(0.f);
             }
         }
-//    }
-    _meshObj.release_face_normals();
-    _meshObj.release_vertex_normals();
+    }
 }
 
 void Mesh::normalizeVector(glm::vec3 &vec) {
@@ -129,9 +124,8 @@ void Mesh::bind_vao_vbo() {
     glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, _normals.size() * sizeof(float), &_normals[0], GL_STATIC_DRAW);
 
-    // Create and load vertex data into a Vertex Buffer Object:
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
-    glBufferData(GL_ARRAY_BUFFER, _vertices_adjacency.size() * sizeof(float), &_vertices_adjacency[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo[2]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(_indeces[0]) * _indeces.size(), &_indeces[0], GL_STATIC_DRAW);
 
     glBindVertexArray(0);
 }
@@ -157,28 +151,31 @@ void Mesh::findAdjacencies() {
 //                //the neighbour vertex in the next face refrenced from above
 //                nvHandle = _meshObj.to_vertex_handle(pvHeHandle);
 //            }
-            mesh::Point v = _meshObj.point(vHandle);
-            mesh::Point nv = _meshObj.point(nvHandle);
-            {
-                _vertices_adjacency.push_back(v[0]);
-                _vertices_adjacency.push_back(v[1]);
-                _vertices_adjacency.push_back(v[2]);
-                _vertices_adjacency.push_back(1.f);
-                _vertices_adjacency.push_back(nv[0]);
-                _vertices_adjacency.push_back(nv[1]);
-                _vertices_adjacency.push_back(nv[2]);
-                _vertices_adjacency.push_back(1.f);
-            }
 
+            _indeces.push_back((vHandle).idx());
+            _indeces.push_back((nvHandle).idx());
+//            mesh::Point v = _meshObj.point(vHandle);
+//            mesh::Point nv = _meshObj.point(nvHandle);
+//            {
+//                _vertices_adjacency.push_back(v[0]);
+//                _vertices_adjacency.push_back(v[1]);
+//                _vertices_adjacency.push_back(v[2]);
+//                _vertices_adjacency.push_back(1.f);
+//                _vertices_adjacency.push_back(nv[0]);
+//                _vertices_adjacency.push_back(nv[1]);
+//                _vertices_adjacency.push_back(nv[2]);
+//                _vertices_adjacency.push_back(1.f);
+//            }
+//
 //            {
 //                OpenMesh::VectorT<float, 3> meshNorm;
 //                meshNorm = _meshObj.calc_vertex_normal(vHandle);
 //                glm::vec3 n = glm::vec3(meshNorm[0], meshNorm[1], meshNorm[2]);
 //                normalizeVector(n);
 //                for (int i = 0; i < 3; i++) {
-//                    _vertices_adjacency.push_back(n[i]);
+//                    _normals.push_back(n[i]);
 //                }
-//                _vertices_adjacency.push_back(0.f);
+//                _normals.push_back(0.f);
 //            }
 
             std::cout << vHandle.idx() << std::endl <<  nvHandle.idx() << std::endl;
@@ -201,6 +198,43 @@ bool Mesh::init(std::string filename, const glm::vec3& center,bool triangle_adja
 //    _model *= glm::vec4(center, 1.f);
 
     computeBoundingBox();
+
+    //add normal attribute to the mesh and calculate it.
+    _meshObj.request_face_normals();
+    _meshObj.request_vertex_normals();
+    _meshObj.update_normals();
+
+    for(mesh::VertexIter vi = _meshObj.vertices_begin(); vi != _meshObj.vertices_end(); vi++)
+    {
+        glm::vec3 vertex;
+        glm::vec3 normal;
+
+        {
+            mesh::Point v = _meshObj.point(*vi);
+            mesh::Point n = _meshObj.calc_vertex_normal(*vi);
+
+            vertex = glm::vec3(v[0], v[1], v[2]);
+            normal = glm::vec3(n[0], n[1], n[2]);
+            normalizeVector(vertex);
+            normalizeVector(normal);
+        }
+
+
+        {
+            _vertices.push_back(vertex.x);
+            _vertices.push_back(vertex.y);
+            _vertices.push_back(vertex.z);
+            _vertices.push_back(1.f);
+            _normals.push_back(normal.x);
+            _normals.push_back(normal.y);
+            _normals.push_back(normal.z);
+            _normals.push_back(1.f);
+        }
+    }
+
+    _meshObj.release_face_normals();
+    _meshObj.release_vertex_normals();
+
     computeVerticesAndNormals();
     bind_vao_vbo();
 
@@ -214,10 +248,10 @@ void Mesh::draw(GLuint program) {
 
     GLenum  topology = _triangle_adjacency ? GL_TRIANGLES_ADJACENCY : GL_TRIANGLES;
 
-    int stride = _triangle_adjacency ? 2 : 0;
+    int stride = _triangle_adjacency ? 0 : 0;
     GLuint vbo = _triangle_adjacency ? _vbo[2] : _vbo[0];
     glBindVertexArray(_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     GLint _posAttrib = glGetAttribLocation(program, "position");
     glEnableVertexAttribArray(_posAttrib);
@@ -225,7 +259,7 @@ void Mesh::draw(GLuint program) {
                           4,          // number of scalars per vertex
                           GL_FLOAT,   // scalar type
                           GL_FALSE,
-                          sizeof(glm::vec4) * stride,
+                          0,
                           0);
 //    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
@@ -237,7 +271,8 @@ void Mesh::draw(GLuint program) {
                           GL_FALSE,
                           0,
                           0);
-    glDrawArrays(topology, 0, static_cast<GLsizei>(_meshObj.n_faces() * 3));
+    glDrawElements(topology, _indeces.size(), GL_UNSIGNED_INT, (GLvoid*)(0));
+//    glDrawArrays(GL_TRIANGLES_ADJACENCY, 0, static_cast<GLsizei>(_meshObj.n_faces() * 3));
     glBindVertexArray(0);
 
 }
