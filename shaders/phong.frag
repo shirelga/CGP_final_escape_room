@@ -30,18 +30,18 @@ void main()
 //	vec3 MaterialDiffuseColor = texture(gTextureSampler, TexCoordPass).rgb * gMaterialColor.xyz;
     vec3 MaterialDiffuseColor = gMaterialColor.xyz;
 	//vec3 MaterialDiffuseColor = gMaterialColor.xyz;
-	vec3 MaterialAmbientColor = vec3(0.5,0.5,0.5) * MaterialDiffuseColor;
-	vec3 MaterialSpecularColor = vec3(1.0,1.0,1.0);
+	vec3 MaterialAmbientColor = vec3(0.3,0.3,0.3) * MaterialDiffuseColor;
+	vec3 MaterialSpecularColor = vec3(0.3f,0.3f,0.3f);
 
 	// Normal of the computed fragment, in camera space
-	vec3 N = normalize(NormalViewPass);
+	vec3 N = -normalize(NormalViewPass);
 
     outColor = MaterialAmbientColor;
 //    outColor = vec3(0.0,0.0,0.0);
 	for(int i = 0; i < 1; i++)
 	{
 		// Direction of the light (from the fragment to the light)
-    	vec3 L = normalize(LightDirectionViewPass[i]);
+    	vec3 L = -normalize(LightDirectionViewPass[i]);
     	// Cosine of the angle between the normal and the light direction,
     	// clamped above 0
     	//  - light is at the vertical of the triangle -> 1
@@ -52,7 +52,7 @@ void main()
     	// Eye vector (towards the camera)
     	vec3 V = normalize(EyeDirectionViewPass);
     	// Direction in which the triangle reflects the light
-    	vec3 R = reflect(-L, N);
+    	vec3 R = normalize(reflect(L, N));
     	// Cosine of the angle between the Eye vector and the Reflect vector,
     	// clamped to 0
     	//  - Looking into the reflection -> 1
@@ -61,7 +61,7 @@ void main()
         outColor += // Diffuse : "color" of the object
                     MaterialDiffuseColor * LightColor * cosTheta +
                     //Specular : reflective highlight, like a mirror
-                    MaterialSpecularColor * LightColor * pow(cosAlpha,20);
+                    MaterialSpecularColor * LightColor * pow(cosAlpha,10);
 	}
 //     outColor = vec3(1, 1, 1);
 }

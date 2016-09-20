@@ -18,6 +18,7 @@ uniform vec3 gEyePosition; // camera (in world)
 void main()
 {
 	mat4 MVP = gProjection * gView * gModel;
+	mat4 M = gModel;
 
 	// Output position of the vertex, in clip space : gMVP * position
 	gl_Position =  MVP * position; // for glutTeapot
@@ -28,18 +29,18 @@ void main()
 
 	// Vector that goes from the vertex to the camera, in camera space.
 	// In camera space, the camera is at the origin (0,0,0).
-	vec3 PositionView = (gView * gModel * position).xyz;
+	vec3 PositionView = (M * position).xyz;
 	EyeDirectionViewPass = gEyePosition - PositionView;
 
 	// Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-	vec3 LightPositionView = (gView  * gModel *  gLightPosition[0]).xyz;
+	vec3 LightPositionView = (M *  gLightPosition[0]).xyz;
 	LightDirectionViewPass[0] = LightPositionView + EyeDirectionViewPass;
 
-	LightPositionView = (gView * gModel * gLightPosition[1]).xyz;
+	LightPositionView = (M * gLightPosition[1]).xyz;
 	LightDirectionViewPass[1] = LightPositionView + EyeDirectionViewPass;
 	
 	// Normal of the the vertex, in camera space
-	NormalViewPass = (gView * gModel * normal).xyz; // Only correct if ModelMatrix does not scale the model ! Use its inverse transpose if not.
+	NormalViewPass = (M * normal).xyz; // Only correct if ModelMatrix does not scale the model ! Use its inverse transpose if not.
 
 //    TexCoordPass.x = (0.5 * position.x) + 0.5;
 //    TexCoordPass.y = (0.5 * position.y) + 0.5;

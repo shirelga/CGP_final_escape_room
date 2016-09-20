@@ -54,6 +54,9 @@ void Mesh::computeBoundingBox() {
     _boundingBox[0] = glm::vec3(lowerLeft[0], lowerLeft[1], lowerLeft[2]);
     _boundingBox[1] = glm::vec3(upperRight[0], upperRight[1], upperRight[2]);
     _center = glm::vec3(center[0], center[1], center[2]);
+    normalizeVector(_boundingBox[0]);
+    normalizeVector(_boundingBox[1]);
+    normalizeVector(_center);
 }
 
 void Mesh::computeVerticesAndNormals() {
@@ -85,24 +88,6 @@ void Mesh::computeVerticesAndNormals() {
             for (fvIter = _meshObj.fv_iter(fHandle); fvIter; ++fvIter) {
 
                 _indeces.push_back((*fvIter).idx());
-//                vHandle = *fvIter;
-//                mesh::Point vertex = _meshObj.point(fvIter);
-//                glm::vec3 v = glm::vec3(vertex[0], vertex[1], vertex[2]);
-//                normalizeVector(v);
-//                //sort out vertices_rgb
-//                for (int i = 0; i < 3; i++) {
-//                    _vertices.push_back(v[i]);
-//                }
-//                _vertices.push_back(1.f);
-
-//                OpenMesh::VectorT<float, 3> meshNorm;
-//                meshNorm = _meshObj.calc_vertex_normal(vHandle);
-//                glm::vec3 n = glm::vec3(meshNorm[0], meshNorm[1], meshNorm[2]);
-//                normalizeVector(n);
-//                for (int i = 0; i < 3; i++) {
-//                    _normals.push_back(n[i]);
-//                }
-//                _normals.push_back(0.f);
             }
         }
     }
@@ -131,9 +116,7 @@ void Mesh::bind_vao_vbo() {
 }
 
 void Mesh::findAdjacencies() {
-    int count = 0;
     for(mesh::FaceIter fIt = _meshObj.faces_begin(); fIt != _meshObj.faces_end(); fIt++) {
-        std::cout << ++count << ":" << std::endl;
         for (mesh::FaceHalfedgeIter feIt = _meshObj.fh_iter(*fIt); feIt; feIt++) {
             mesh::HalfedgeHandle heHandle = *feIt;
             //The vertex that the halfedge point to
@@ -141,47 +124,10 @@ void Mesh::findAdjacencies() {
 
             //calculate the neighbour vertex
             mesh::VertexHandle nvHandle = _meshObj.opposite_he_opposite_vh(heHandle);
-//            {
-//                //the opposite halfedge
-//                mesh::HalfedgeHandle ovHeHandle = _meshObj.opposite_halfedge_handle(heHandle);
-//                //the prev halfedge to the opposite
-//                mesh::HalfedgeHandle povHeHandle = _meshObj.prev_halfedge_handle(ovHeHandle);
-//                //the opposite halfedge to the prev
-//                mesh::HalfedgeHandle pvHeHandle = _meshObj.opposite_halfedge_handle(povHeHandle);
-//                //the neighbour vertex in the next face refrenced from above
-//                nvHandle = _meshObj.to_vertex_handle(pvHeHandle);
-//            }
 
             _indeces.push_back((vHandle).idx());
             _indeces.push_back((nvHandle).idx());
-//            mesh::Point v = _meshObj.point(vHandle);
-//            mesh::Point nv = _meshObj.point(nvHandle);
-//            {
-//                _vertices_adjacency.push_back(v[0]);
-//                _vertices_adjacency.push_back(v[1]);
-//                _vertices_adjacency.push_back(v[2]);
-//                _vertices_adjacency.push_back(1.f);
-//                _vertices_adjacency.push_back(nv[0]);
-//                _vertices_adjacency.push_back(nv[1]);
-//                _vertices_adjacency.push_back(nv[2]);
-//                _vertices_adjacency.push_back(1.f);
-//            }
-//
-//            {
-//                OpenMesh::VectorT<float, 3> meshNorm;
-//                meshNorm = _meshObj.calc_vertex_normal(vHandle);
-//                glm::vec3 n = glm::vec3(meshNorm[0], meshNorm[1], meshNorm[2]);
-//                normalizeVector(n);
-//                for (int i = 0; i < 3; i++) {
-//                    _normals.push_back(n[i]);
-//                }
-//                _normals.push_back(0.f);
-//            }
-
-            std::cout << vHandle.idx() << std::endl <<  nvHandle.idx() << std::endl;
-
         }
-        std::cout<<std::endl<<std::endl;
     }
 }
 
@@ -228,7 +174,7 @@ bool Mesh::init(std::string filename, const glm::vec3& center,bool triangle_adja
             _normals.push_back(normal.x);
             _normals.push_back(normal.y);
             _normals.push_back(normal.z);
-            _normals.push_back(1.f);
+            _normals.push_back(0.f);
         }
     }
 
@@ -248,8 +194,6 @@ void Mesh::draw(GLuint program) {
 
     GLenum  topology = _triangle_adjacency ? GL_TRIANGLES_ADJACENCY : GL_TRIANGLES;
 
-    int stride = _triangle_adjacency ? 0 : 0;
-    GLuint vbo = _triangle_adjacency ? _vbo[2] : _vbo[0];
     glBindVertexArray(_vao);
     glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -272,7 +216,6 @@ void Mesh::draw(GLuint program) {
                           0,
                           0);
     glDrawElements(topology, _indeces.size(), GL_UNSIGNED_INT, (GLvoid*)(0));
-//    glDrawArrays(GL_TRIANGLES_ADJACENCY, 0, static_cast<GLsizei>(_meshObj.n_faces() * 3));
     glBindVertexArray(0);
 
 }

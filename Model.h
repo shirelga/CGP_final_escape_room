@@ -21,6 +21,8 @@ using namespace glm;
 #include <GL/gl.h>
 #endif
 
+#include <vector>
+
 class Model {
 	
     GLuint _vao, _vbo, _ibo;
@@ -32,15 +34,19 @@ class Model {
     GLint _fillColorUV, _gpuWVP;
     
     size_t _nVertices;
+
+//    std::vector<float>  _vertices;
+//    std::vector<unsigned char> _indices;
     // View port frame:
     float _width, _height, _offsetX, _offsetY;
 
- public:
+public:
     Model();
     virtual ~Model();
     void init();
     void draw(mat4 wvp);
-    void resize(int width, int height);	
+    void resize(int width, int height);
+    std::vector<float> midMap(std::vector<glm::vec4>& base);
 };
 
 #endif /* defined(__ex0__Model__) */
