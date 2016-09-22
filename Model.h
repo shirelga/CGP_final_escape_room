@@ -25,13 +25,13 @@ using namespace glm;
 
 class Model {
 	
-    GLuint _vao, _vbo, _ibo;
+    GLuint _vao, _vbo[2], _ibo;
 
     // Attribute handle:
     GLint _posAttrib;
 	
     // Uniform handle:
-    GLint _fillColorUV, _gpuWVP;
+    GLint _fillColorUV, _gpuW, _gpuV, _gpuP;
     
     size_t _nVertices;
 
@@ -44,7 +44,7 @@ public:
     Model();
     virtual ~Model();
     void init();
-    void draw(mat4 wvp);
+    void draw(mat4 w, mat4 v, mat4 p);
     void resize(int width, int height);
     std::vector<float> midMap(std::vector<glm::vec4>& base);
 };
