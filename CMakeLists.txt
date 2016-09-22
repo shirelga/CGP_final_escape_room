@@ -2,7 +2,17 @@ cmake_minimum_required(VERSION 3.3)
 project(final_project)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-deprecated")
-set(SOURCE_FILES main.cpp Camera.cpp ShaderIO.cpp Object.cpp Object.h Cube.cpp Cube.h Mesh.cpp Mesh.h Model.cpp)
+set(SOURCE_FILES
+        main.cpp
+        Camera.cpp
+        ShaderIO.cpp
+        Object.cpp
+        Object.h
+        Cube.cpp
+        Cube.h
+        Mesh.cpp
+        Mesh.h
+        Model.cpp)
 
 set(OpenCV_DIR /usr/local/opt/opencv3)
 set(Local_DIR /usr/local/lib)
