@@ -32,6 +32,8 @@ public:
 
     void static destroy();
 
+    void keyPressed(int key, int x, int y);
+
     //Set all the view changes for key moves
 //    void setViewRotate(int leftRight);
 //    void setViewTranslate(int backFroward);
@@ -42,7 +44,13 @@ public:
 //    float vDistFromPlayer();
 //    void getDistFromCam();
 //    void getPitch();
+    inline void set_screen_width(int _screen_width) {
+        Camera::_screen_width = _screen_width;
+    }
 
+    inline void set_screen_hieght(int _screen_hieght) {
+        Camera::_screen_hieght = _screen_hieght;
+    }
 
 private:
     glm::vec3 _dir;
@@ -54,8 +62,15 @@ private:
     float _playerPitch;
     float _fov;
     glm::vec3 _playerOffset;
+private:
+    int _screen_width, _screen_hieght;
     static Camera* singletone;
     Camera();
+    void straf(bool side);
+    void rotate(bool side);
+    void walk(bool front_back);
+    int get_max_axis(const glm::vec3& v);
+    void update_view();
 
     Camera(Camera const&) = delete;
     void operator=(Camera const&) = delete;

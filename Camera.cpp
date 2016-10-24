@@ -2,13 +2,22 @@
 // Created by Shirel Gazit on 6/2/16.
 //
 
+#include <GL/glew.h>
+#include <GLUT/glut.h>
 #include "Camera.h"
+
+#define RIGHT true
+#define LEFT false
+#define FRONT true
+#define BACK false
+#define MOVE 0.5f
+
 Camera* Camera::singletone = nullptr;
 
 Camera::Camera()
 {
 //    front
-    _pos = glm::vec3(0.f, 0.f, -5.f);
+    _pos = glm::vec3(0.f, 20.f, -50.f);
     _dir = glm::vec3(0.0f, 0.0f, 1.0f);
     _up = glm::vec3(0.f, 1.f, 0.f);
 
@@ -18,20 +27,23 @@ Camera::Camera()
 //    _up = glm::vec3(0.f, 1.f, 0.f);
 
 //    //up
-    _pos = glm::vec3(0.f, 10.f, 0.f);
-    _dir = glm::vec3(0.0f, -1.0f, 0.0f);
-    _up = glm::vec3(1.f, 0.f, 0.f);
+//    _pos = glm::vec3(0.f, 10.f, 0.f);
+//    _dir = glm::vec3(0.0f, -1.0f, 0.0f);
+//    _up = glm::vec3(1.f, 0.f, 0.f);
 
 //    //down
 //    _pos = glm::vec3(0.f, -5.f, 0.f);
 //    _dir = glm::vec3(0.0f, 1.0f, 0.0f);
-//    _up = glm::vec3(1.f, 0.f, 0.f);
+//    _up = glm::vec3(-1.f, 0.f, 0.f);
 
 
 
     _fov = 45.f;
-    _View = glm::lookAt(_pos, _pos + _dir, _up);
-    _Perspective = glm::perspective(_fov, 1.f, 0.1f, 100.f);
+    _View = glm::lookAt(_pos, (_pos + _dir), _up);
+    float ratio = (float)_screen_width/(float)_screen_hieght;
+//    _Perspective = glm::perspectiveFov(_fov, static_cast<float
+//            >(glutGet(GLUT_SCREEN_WIDTH)), static_cast<float>(glutGet(GLUT_SCREEN_HEIGHT)), 0.1f, 300.f);
+    _Perspective = glm::perspective(_fov, 1.f, 0.1f, 300.f);
 };
 
 
@@ -50,82 +62,167 @@ void Camera::destroy() {
     delete singletone;
 }
 
-//void Camera::setViewRotate(int leftRight)
-//{
-//    if(leftRight)
-//    {
-//        _dir = glm::vec3(glm::rotate(glm::mat4(1.f),glm::radians(-1.f), glm::vec3(0.f, 1.f, 0.f)) *  glm::vec4(_dir,1.f));
-////            std::cout<<_dir.x<<" "<<_dir.y<<" "<<_dir.z<<std::endl;
-////            _View = glm::rotateY(_View, glm::radians(5.f), glm::vec3(0.f, 1.f, 0.f));
-//    }
-//    else
-//    {
-//        _dir = glm::vec3(glm::rotate(glm::mat4(1.f), glm::radians(1.f), glm::vec3(0.f, 1.f, 0.f)) * glm::vec4(_dir,1.f));
-//    }
-//#ifdef DBG
-//    print();
-//#endif
-//    _View = glm::lookAt(_pos, _pos + _dir, _up);
-//
-//}
+void Camera::keyPressed(int key, int x, int y) {
+    switch (key)
+    {
+        case 'q':
+            straf(LEFT);
+            break;
+        case 'w':
+            walk(FRONT);
+            break;
+        case 'e':
+            straf(RIGHT);
+            break;
+        case 'a':
+            rotate(LEFT);
+        case 's':
+            walk(BACK);
+            break;
+        case 'd':
+            rotate(RIGHT);
+            break;
+        default:
+            std::cerr<< static_cast<char>(key)<<" not initialize key"<<std::endl;
+            break;
+    }
+}
 
-//void Camera::setViewTranslate(int backFroward)
-//{
-//    glm::vec3 move = glm::vec3(0.1f * _dir.x, 0.f, 0.1f * _dir.z);
-//    if(backFroward)
-//    {
-////        if(fabsf(_pos.x + move.x) > 0.9999999f || fabsf(_pos.z + move.z) > 0.9999999f)
-////        { return;}
-//        _tempPos = _pos;
-//        _pos = glm::vec3(glm::translate(glm::mat4(1.f), move) * glm::vec4(_pos,1.f));
-//    }
-//    else
-//    {
-////        if(fabsf(_pos.x - move.x) > 0.9999999f || fabsf(_pos.z - move.z) > 0.9999999f)
-////        { return;}
-//        _tempPos = _pos;
-//        _pos = glm::vec3(glm::translate(glm::mat4(1.0f), -1.f * move) * glm::vec4(_pos,1.f));
-//    }
-//#ifdef DBG
-//    print();
-//#endif
-//    _View = glm::lookAt(_pos, _pos + _dir, _up);
-//}
+void Camera::straf(bool side) {
+    int axis = get_max_axis(_dir);
+    switch (side)
+    {
+        case RIGHT:
+            if(axis)
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.x += MOVE;
+                }
+                else
+                {
+                    _pos.x -= MOVE;
+                }
+            }
+            else
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.z -= MOVE;
+                }
+                else
+                {
+                    _pos.z += MOVE;
+                }
+            }
+            break;
+        case LEFT:
+            if(axis)
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.x -= MOVE;
+                }
+                else
+                {
+                    _pos.x += MOVE;
+                }
+            }
+            else
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.z += MOVE;
+                }
+                else
+                {
+                    _pos.z -= MOVE;
+                }
+            }
+            break;
+    }
+    update_view();
+}
 
-//void Camera::updateCameraTranslate(float vel) {
-//    _pos  = glm::vec3(_player->get_model() * glm::vec4(_playerOffset, 1));
-//    _dir = _player->get_dir();
-//    _View = glm::lookAt(_pos, _pos + _dir, _up);
-//}
-//
-////void Camera::updateCameraRotate(float x, float z, float angle) {
-////    _pos.x += x;
-////    _pos.z += z;
-////    _dir = glm::vec3(glm::rotateY(glm::mat4(1.f), angle, glm::vec3(0.f, 1.f, 0.f)) * glm::vec4(_dir,1.f));
-////    _View = glm::lookAt(_pos, _pos + _dir, _up);
-//
-//void Camera::updateCameraRotate(float angle, float y_rot) {
-//    _pos = glm::vec3(_player->get_model() * glm::vec4(_playerOffset, 1));
-//    _dir = _player->get_dir();
-//    _up = _player->get_up();
-//    _View = glm::lookAt(_pos, _pos + _dir, _up);
-//}
-//
-//void Camera::getDistFromCam() {
-//    _playerDistFromCam =  glm::distance(_pos, _player->get_center());
-//}
-//
-//void Camera::getPitch() {
-//    glm::vec3 center = _player->get_center();
-//    float hDist = center.z - _pos.z;
-////    float d = getDistFromCam();
-//    _playerPitch = glm::acos(hDist / _playerDistFromCam);
-//}
-//
-//float Camera::hDistFromPlayer() {
-//    return _playerDistFromCam * glm::cos(_playerPitch);
-//}
-//
-//float Camera::vDistFromPlayer() {
-//    return _playerDistFromCam * glm::sin(_playerPitch);
-//}
+void Camera::rotate(bool side) {
+    switch (side)
+    {
+        case LEFT:
+
+            _dir = glm::rotateY(_dir, glm::radians(90.f));
+            break;
+        case RIGHT:
+            _dir = glm::rotateY(_dir, glm::radians(-90.f));
+            break;
+    }
+    update_view();
+}
+
+void Camera::walk(bool front_back) {
+    int axis = get_max_axis(_dir);
+    switch (front_back)
+    {
+        case FRONT:
+
+            if(axis)
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.z -= MOVE;
+                }
+                else
+                {
+                    _pos.z += MOVE;
+                }
+            }
+            else
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.x -= MOVE;
+                }
+                else
+                {
+                    _pos.x += MOVE;
+                }
+            }
+            break;
+        case BACK:
+            if(axis)
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.z += MOVE;
+                }
+                else
+                {
+                    _pos.z -= MOVE;
+                }
+            }
+            else
+            {
+                if(_dir[axis] < 0)
+                {
+                    _pos.x += MOVE;
+                }
+                else
+                {
+                    _pos.x -= MOVE;
+                }
+            }
+            break;
+    }
+    update_view();
+}
+
+int Camera::get_max_axis(const glm::vec3 &v) {
+    if(glm::abs(v.x) >= glm::abs(v.z))
+    {
+        return 0;
+    }
+    return 2;
+}
+
+void Camera::update_view() {
+    _View = glm::lookAt(_pos, (_pos + _dir), _up);
+}

@@ -6,13 +6,19 @@ set(SOURCE_FILES
         main.cpp
         Camera.cpp
         ShaderIO.cpp
-        Object.cpp
-        Object.h
-        Cube.cpp
-        Cube.h
         Mesh.cpp
         Mesh.h
-        Model.cpp)
+        Model.cpp
+        ShadersTech.cpp
+        ShadersTech.h
+        ShadingTech.cpp
+        ShadingTech.h
+        NullTech.cpp
+        NullTech.h
+        ShadowVolumeTech.cpp
+        ShadowVolumeTech.h
+        Texture.cpp
+        Texture.h)
 
 set(OpenCV_DIR /usr/local/opt/opencv3)
 set(Local_DIR /usr/local/lib)

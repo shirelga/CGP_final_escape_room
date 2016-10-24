@@ -6,12 +6,17 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-Mesh::Mesh():_model(1.f){ }
+Mesh::Mesh():_model(1.f), _translation(1.f), _rotation(1.f), _scale(1.f), tex(nullptr){ }
 
 Mesh::~Mesh() {
+
+    if(tex != nullptr)
+    {
+        delete tex;
+    }
     if(_vbo != NULL)
     {
-        glDeleteBuffers(3, _vbo);
+        glDeleteBuffers(2, _vbo);
     }
 
     if(_vao != 0)
@@ -34,7 +39,7 @@ bool Mesh::load(std::string &filename) {
 void Mesh::computeBoundingBox() {
 
     mesh::VertexIter vertexIter;
-    mesh::Point p, center;
+    mesh::Point p, center = mesh::Point(0.f);
     const float fm = std::numeric_limits<float>::max();
     mesh::Point lowerLeft(fm, fm, fm);
     mesh::Point upperRight(-fm,-fm,-fm);
@@ -51,12 +56,13 @@ void Mesh::computeBoundingBox() {
             upperRight[i] = std::max(upperRight[i],p[i]);
         }
     }
+    center /= vNum;
     _boundingBox[0] = glm::vec3(lowerLeft[0], lowerLeft[1], lowerLeft[2]);
     _boundingBox[1] = glm::vec3(upperRight[0], upperRight[1], upperRight[2]);
     _center = glm::vec3(center[0], center[1], center[2]);
-    normalizeVector(_boundingBox[0]);
-    normalizeVector(_boundingBox[1]);
-    normalizeVector(_center);
+    normalizeVector(_boundingBox[0], false);
+    normalizeVector(_boundingBox[1], false);
+    normalizeVector(_center, false);
 }
 
 void Mesh::computeVerticesAndNormals() {
@@ -93,7 +99,12 @@ void Mesh::computeVerticesAndNormals() {
     }
 }
 
-void Mesh::normalizeVector(glm::vec3 &vec) {
+void Mesh::normalizeVector(glm::vec3 &vec, bool range) {
+    if(range)
+    {
+        vec = ((vec - _boundingBox[0]) / (_boundingBox[1] - _boundingBox[0]));
+        return;
+    }
     vec = ((vec - _boundingBox[0]) / (_boundingBox[1] - _boundingBox[0])) * 2.f - 1.f;
 }
 
@@ -102,22 +113,49 @@ void Mesh::bind_vao_vbo() {
     glBindVertexArray(_vao);
 
     // Create and load vertex data into a Vertex Buffer Object:
-    glGenBuffers(3, _vbo);
+    glGenBuffers(4, _vbo);
     glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, _vertices.size() * sizeof(float), &_vertices[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, // attribute handle
+                          4,          // number of scalars per vertex
+                          GL_FLOAT,   // scalar type
+                          GL_FALSE,
+                          0,
+                          0);
 
     glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, _normals.size() * sizeof(float), &_normals[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, // attribute handle
+                          4,          // number of scalars per vertex
+                          GL_FLOAT,   // scalar type
+                          GL_FALSE,
+                          0,
+                          0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
+    glBufferData(GL_ARRAY_BUFFER, _tex_cords.size() * sizeof(float), &_tex_cords[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, // attribute handle
+                          3,          // number of scalars per vertex
+                          GL_FLOAT,   // scalar type
+                          GL_FALSE,
+                          0,
+                          0);
+
+//    glGenBuffers(1,  &_ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo[3]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(_indeces[0]) * _indeces.size(), &_indeces[0], GL_STATIC_DRAW);
 
     glBindVertexArray(0);
 }
 
+
 void Mesh::findAdjacencies() {
-    for(mesh::FaceIter fIt = _meshObj.faces_begin(); fIt != _meshObj.faces_end(); fIt++) {
-        for (mesh::FaceHalfedgeIter feIt = _meshObj.fh_iter(*fIt); feIt; feIt++) {
+    for(mesh::FaceIter fIt = _meshObj.faces_begin(); fIt != _meshObj.faces_end(); ++fIt) {
+        mesh::FaceHalfedgeIter feIt = _meshObj.fh_iter(*fIt);
+        for (; feIt; ++feIt) {
             mesh::HalfedgeHandle heHandle = *feIt;
             //The vertex that the halfedge point to
             mesh::VertexHandle vHandle = _meshObj.to_vertex_handle(heHandle);
@@ -125,23 +163,28 @@ void Mesh::findAdjacencies() {
             //calculate the neighbour vertex
             mesh::VertexHandle nvHandle = _meshObj.opposite_he_opposite_vh(heHandle);
 
-            _indeces.push_back((vHandle).idx());
-            _indeces.push_back((nvHandle).idx());
+            int vIdx = vHandle.idx();
+            int nvIdx = nvHandle.idx();
+
+            _indeces.push_back(vIdx);
+            _indeces.push_back(nvIdx);
         }
     }
 }
 
 
 
-bool Mesh::init(std::string filename, const glm::vec3& center,bool triangle_adjacency) {
+bool Mesh::init(std::string filename, std::string textures[], int num_of_tex,
+                const glm::vec3 &center, bool triangle_adjacency) {
 
     if(!load(filename))
     {
         return false;
     }
 
+    tex = new Texture(textures, num_of_tex);
+    tex->load();
     _triangle_adjacency = triangle_adjacency;
-//    _model *= glm::vec4(center, 1.f);
 
     computeBoundingBox();
 
@@ -150,19 +193,20 @@ bool Mesh::init(std::string filename, const glm::vec3& center,bool triangle_adja
     _meshObj.request_vertex_normals();
     _meshObj.update_normals();
 
+
     for(mesh::VertexIter vi = _meshObj.vertices_begin(); vi != _meshObj.vertices_end(); vi++)
     {
         glm::vec3 vertex;
         glm::vec3 normal;
+        glm::vec3 tex;
 
         {
             mesh::Point v = _meshObj.point(*vi);
             mesh::Point n = _meshObj.calc_vertex_normal(*vi);
-
             vertex = glm::vec3(v[0], v[1], v[2]);
             normal = glm::vec3(n[0], n[1], n[2]);
-            normalizeVector(vertex);
-            normalizeVector(normal);
+            normalizeVector(vertex, false);
+            normalizeVector(normal, false);
         }
 
 
@@ -174,48 +218,52 @@ bool Mesh::init(std::string filename, const glm::vec3& center,bool triangle_adja
             _normals.push_back(normal.x);
             _normals.push_back(normal.y);
             _normals.push_back(normal.z);
-            _normals.push_back(0.f);
+            _normals.push_back(1.f);
+            _tex_cords.push_back(_center.x - vertex.x);
+            _tex_cords.push_back(_center.y - vertex.y);
+            _tex_cords.push_back(_center.z - vertex.z);
         }
     }
-
+    _meshObj.update_normals();
     _meshObj.release_face_normals();
     _meshObj.release_vertex_normals();
-
     computeVerticesAndNormals();
     bind_vao_vbo();
 
-    glm::vec3 diff = center - center;
-    _model = glm::translate(_model, diff);
-    std::cout<<glm::to_string(center + diff)<<std::endl;
+    translate(center);
+    _center += center;
     return true;
 }
 
-void Mesh::draw(GLuint program) {
+void Mesh::draw() {
 
     GLenum  topology = _triangle_adjacency ? GL_TRIANGLES_ADJACENCY : GL_TRIANGLES;
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     glBindVertexArray(_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    GLint _posAttrib = glGetAttribLocation(program, "position");
-    glEnableVertexAttribArray(_posAttrib);
-    glVertexAttribPointer(_posAttrib, // attribute handle
-                          4,          // number of scalars per vertex
-                          GL_FLOAT,   // scalar type
-                          GL_FALSE,
-                          0,
-                          0);
-//    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
-    GLint _fillColorUV = glGetAttribLocation(program, "normal");
-    glEnableVertexAttribArray(_fillColorUV);
-    glVertexAttribPointer(_fillColorUV, // attribute handle
-                          4,          // number of scalars per vertex
-                          GL_FLOAT,   // scalar type
-                          GL_FALSE,
-                          0,
-                          0);
-    glDrawElements(topology, _indeces.size(), GL_UNSIGNED_INT, (GLvoid*)(0));
-    glBindVertexArray(0);
 
+    if(tex != nullptr)
+    {
+        tex->bind(GL_TEXTURE2);
+    }
+    glDrawElements(topology, _indeces.size(), GL_UNSIGNED_INT, (GLvoid*)(0));
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE0, 0);
+
+}
+
+void Mesh::translate(const glm::vec3 &v) {
+    _translation = glm::translate(_translation, v);
+    _model =  _translation * _rotation * _scale;
+}
+
+void Mesh::scale(const glm::vec3 &v) {
+    _scale = glm::scale(_scale, v);
+    _model =  _translation * _rotation * _scale;
+}
+
+void Mesh::rotate(const float angle) {
+    _rotation = glm::rotate(_rotation, glm::radians(angle), glm::vec3(0, 1, 0));
+    _model =  _translation * _rotation * _scale;
 }
