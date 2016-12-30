@@ -8,8 +8,8 @@ Simple escape room, the main perpuse is to use real time cg graphic engine abili
 ##**ToDo:**
 
 - [x] ~~figure out silhouette issues, maybe TRIANGLES_ADJACENCY layout incorrect~~
-- [ ] implement volume shading
-- [ ] ask Igal for textures
-- [ ] more OOP
+- [x] ~~implement volume shading~~
+- [x] ~~ask Igal for textures~~
+- [x] ~~more OOP~~
 - [ ] work more...
 
